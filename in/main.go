@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/blang/semver"
-
 	"github.com/concourse/semver-resource/models"
 	"github.com/concourse/semver-resource/version"
 )
