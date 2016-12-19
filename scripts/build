@@ -1,6 +1,23 @@
-#!/bin/bash
+#!/usr/bin/env bash
+pushd `dirname $0` > /dev/null; BASEDIR=`pwd`; popd > /dev/null
 
-mkdir -p assets
-GOOS=linux GOARCH=amd64 go build -o assets/in in/main.go
-GOOS=linux GOARCH=amd64 go build -o assets/out out/main.go
-GOOS=linux GOARCH=amd64 go build -o assets/check check/main.go
+set -ex
+
+DIR=$GOPATH/src/github.com/concourse/semver-resource
+mkdir -p $DIR
+
+cd $BASEDIR/..
+cp -r . $DIR
+
+cd $DIR
+go get ./...
+
+OUT=$BASEDIR/../../docker/assets
+
+mkdir -p $OUT
+
+cp Dockerfile $OUT/..
+
+GOOS=linux GOARCH=amd64 go build -o $OUT/in in/main.go
+GOOS=linux GOARCH=amd64 go build -o $OUT/out out/main.go
+GOOS=linux GOARCH=amd64 go build -o $OUT/check check/main.go
