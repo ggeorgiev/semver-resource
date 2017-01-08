@@ -74,7 +74,7 @@ func (driver *GitTagDriver) writeVersion(newVersion semver.Version) (bool, error
 		os.Getenv("BUILD_JOB_NAME"),
 		os.Getenv("BUILD_NAME"))
 
-	gitFetch := exec.Command("git", "fetch", "--tags", "--dry-run", "--depth=1")
+	gitFetch := exec.Command("git", "fetch", "--tags")
 	gitFetch.Dir = gitRepoDir
 	gitFetchOutput, err := gitFetch.CombinedOutput()
 	if err != nil {
