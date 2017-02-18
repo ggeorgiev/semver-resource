@@ -7,13 +7,12 @@ import (
 	"github.com/blang/semver"
 	"github.com/concourse/semver-resource/models"
 	"github.com/concourse/semver-resource/version"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/containers"
-	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/objects"
-
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
+	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/containers"
+	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/objects"
 )
 
 var client *gophercloud.ServiceClient

@@ -1,12 +1,11 @@
 package driver
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
-
-	"bytes"
 
 	"github.com/blang/semver"
 )
@@ -15,6 +14,7 @@ type GitTagDriver struct {
 	Prefix     string
 	URI        string
 	Repository string
+	Branch     string
 }
 
 const nothingToDescribe = "No names found, cannot describe anything"
@@ -29,7 +29,11 @@ func (driver *GitTagDriver) readVersion() (semver.Version, bool, error) {
 		return semver.Version{}, false, err
 	}
 
-	gitDescribe := exec.Command("git", "tag", "--sort=-taggerdate", "-l", driver.Prefix+"*")
+	gitDescribe := exec.Command("git", "tag", "--sort=-taggerdate")
+	if driver.Branch != "" {
+		gitDescribe.Args = append(gitDescribe.Args, fmt.Sprintf(`--merged=origin/%s`, driver.Branch))
+	}
+	gitDescribe.Args = append(gitDescribe.Args, "-l", driver.Prefix+"*")
 	gitDescribe.Dir = gitRepoDir
 	describeOutput, err := gitDescribe.CombinedOutput()
 
@@ -74,7 +78,7 @@ func (driver *GitTagDriver) writeVersion(newVersion semver.Version) (bool, error
 		os.Getenv("BUILD_JOB_NAME"),
 		os.Getenv("BUILD_NAME"))
 
-	gitFetch := exec.Command("git", "fetch", "--tags")
+	gitFetch := exec.Command("git", "fetch", "--tags", "--dry-run", "--depth=1")
 	gitFetch.Dir = gitRepoDir
 	gitFetchOutput, err := gitFetch.CombinedOutput()
 	if err != nil {

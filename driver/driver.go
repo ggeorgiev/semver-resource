@@ -97,6 +97,7 @@ func FromSource(source models.Source) (Driver, error) {
 				URI:        source.URI,
 				Prefix:     source.TagPrefix,
 				Repository: source.Repository,
+				Branch:     source.Branch,
 			},
 		}, nil
 
