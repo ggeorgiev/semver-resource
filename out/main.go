@@ -58,7 +58,13 @@ func main() {
 	} else if request.Params.Bump != "" || request.Params.Pre != "" {
 		bump := version.BumpFromParams(request.Params.Bump, request.Params.Pre)
 
-		newVersion, err = driver.Bump(bump)
+		var params map[string]interface{}
+		if request.Params.Repo != "" {
+			params = make(map[string]interface{})
+			params["repo"] = filepath.Join(sources, request.Params.Repo)
+		}
+
+		newVersion, err = driver.Bump(bump, params)
 		if err != nil {
 			fatal("bumping version", err)
 		}

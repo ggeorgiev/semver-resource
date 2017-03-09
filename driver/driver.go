@@ -13,7 +13,7 @@ import (
 )
 
 type Driver interface {
-	Bump(version.Bump) (semver.Version, error)
+	Bump(version.Bump, map[string]interface{}) (semver.Version, error)
 	Set(semver.Version) error
 	Check(*semver.Version) ([]semver.Version, error)
 }

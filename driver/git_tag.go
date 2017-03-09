@@ -1,10 +1,12 @@
 package driver
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
+	"strconv"
 	"strings"
 
 	"github.com/blang/semver"
@@ -20,6 +22,35 @@ type GitTagDriver struct {
 const nothingToDescribe = "No names found, cannot describe anything"
 const notAValidObject = "Not a valid object name HEAD"
 
+func currentVersion(prefix string, describeOutput string) (semver.Version, error) {
+	tags := strings.Split(string(describeOutput), "\n")
+
+	max := semver.Version{}
+
+	for _, tag := range tags {
+		versionStr := strings.TrimSpace(tag)
+		if len(versionStr) == 0 {
+			continue
+		}
+
+		if !strings.HasPrefix(versionStr, prefix) {
+			return semver.Version{}, errors.New("Unexpected tag: " + tag)
+		}
+
+		versionStr = versionStr[len(prefix):]
+		current, err := semver.Parse(versionStr)
+		if err != nil {
+			return semver.Version{}, err
+		}
+
+		if current.Compare(max) > 0 {
+			max = current
+		}
+	}
+
+	return max, nil
+}
+
 func (driver *GitTagDriver) readVersion() (semver.Version, bool, error) {
 	gitFetch := exec.Command("git", "fetch", "--tags")
 	gitFetch.Dir = gitRepoDir
@@ -29,25 +60,17 @@ func (driver *GitTagDriver) readVersion() (semver.Version, bool, error) {
 		return semver.Version{}, false, err
 	}
 
-	gitDescribe := exec.Command("git", "tag", "--sort=-taggerdate")
+	gitDescribe := exec.Command("git", "tag")
 	if driver.Branch != "" {
 		gitDescribe.Args = append(gitDescribe.Args, fmt.Sprintf(`--merged=origin/%s`, driver.Branch))
 	}
 	gitDescribe.Args = append(gitDescribe.Args, "-l", driver.Prefix+"*")
 	gitDescribe.Dir = gitRepoDir
 	describeOutput, err := gitDescribe.CombinedOutput()
-
-	var currentVersionStr string
-	if index := bytes.Index(describeOutput, []byte{10}); index > 1 {
-		currentVersionStr = string(describeOutput[:index])
-	} else {
-		currentVersionStr = string(describeOutput)
-	}
-	currentVersionStr = strings.TrimSpace(currentVersionStr)
-
+	describeOutputStr := string(describeOutput)
 	if err != nil {
-		if strings.Contains(currentVersionStr, nothingToDescribe) ||
-			strings.Contains(currentVersionStr, notAValidObject) {
+		if strings.Contains(describeOutputStr, nothingToDescribe) ||
+			strings.Contains(describeOutputStr, notAValidObject) {
 			os.Stderr.Write(describeOutput)
 			return semver.Version{}, false, nil
 		}
@@ -56,12 +79,7 @@ func (driver *GitTagDriver) readVersion() (semver.Version, bool, error) {
 		return semver.Version{}, false, err
 	}
 
-	if currentVersionStr == "" {
-		return semver.Version{}, false, nil
-	}
-
-	currentVersionStr = currentVersionStr[len(driver.Prefix):]
-	currentVersion, err := semver.Parse(currentVersionStr)
+	currentVersion, err := currentVersion(driver.Prefix, describeOutputStr)
 
 	if err != nil {
 		os.Stderr.Write(describeOutput)
@@ -71,7 +89,7 @@ func (driver *GitTagDriver) readVersion() (semver.Version, bool, error) {
 	return currentVersion, true, nil
 }
 
-func (driver *GitTagDriver) writeVersion(newVersion semver.Version) (bool, error) {
+func (driver *GitTagDriver) writeVersion(newVersion semver.Version, params map[string]interface{}) (bool, error) {
 	tagMessage := fmt.Sprintf(
 		"\"Pipeline: %s\\nJob: %s\\nBuild: %s\"",
 		os.Getenv("BUILD_PIPELINE_NAME"),
@@ -86,15 +104,48 @@ func (driver *GitTagDriver) writeVersion(newVersion semver.Version) (bool, error
 		return false, err
 	}
 
-	gitLs := exec.Command("git", "ls-remote", "origin", "HEAD")
-	gitLs.Dir = gitRepoDir
-	gitLsOutput, err := gitLs.CombinedOutput()
-	if err != nil {
-		os.Stderr.Write(gitLsOutput)
-		return false, err
-	}
+	var headRef string
+	if params != nil {
+		repo, ok := params["repo"]
+		if !ok {
+			os.Stderr.Write([]byte("The repo parameter is required for the git-tag driver"))
+		}
 
-	headRef := strings.Split(string(gitLsOutput), "\t")[0]
+		repoStr := repo.(string)
+		os.Stderr.Write([]byte("Use the sha from resource: " + repoStr))
+
+		gitLs := exec.Command("git",
+			"--git-dir="+path.Join(repoStr, ".git"),
+			"log", "-1", `--pretty=format:"%H"`)
+		gitLsOutput, err := gitLs.CombinedOutput()
+		if err != nil {
+			os.Stderr.Write(gitLsOutput)
+			return false, err
+		}
+
+		headRef, err = strconv.Unquote(strings.TrimSpace(string(gitLsOutput)))
+		if err != nil {
+			os.Stderr.Write(gitLsOutput)
+			return false, err
+		}
+	} else {
+		at := "HEAD"
+		if driver.Branch != "" {
+			at = driver.Branch
+		}
+
+		os.Stderr.Write([]byte("Use the last hash at " + at))
+
+		gitLs := exec.Command("git", "ls-remote", "origin", at)
+		gitLs.Dir = gitRepoDir
+		gitLsOutput, err := gitLs.CombinedOutput()
+		if err != nil {
+			os.Stderr.Write(gitLsOutput)
+			return false, err
+		}
+
+		headRef = strings.Split(string(gitLsOutput), "\t")[0]
+	}
 
 	version := driver.Prefix + newVersion.String()
 

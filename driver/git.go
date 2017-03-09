@@ -38,11 +38,11 @@ type GitDriver struct {
 
 type VersionDriver interface {
 	readVersion() (semver.Version, bool, error)
-	writeVersion(semver.Version) (bool, error)
+	writeVersion(semver.Version, map[string]interface{}) (bool, error)
 	setUpRepo() error
 }
 
-func (driver *GitDriver) Bump(bump version.Bump) (semver.Version, error) {
+func (driver *GitDriver) Bump(bump version.Bump, params map[string]interface{}) (semver.Version, error) {
 	err := driver.setUpAuth()
 	if err != nil {
 		return semver.Version{}, err
@@ -72,7 +72,7 @@ func (driver *GitDriver) Bump(bump version.Bump) (semver.Version, error) {
 
 		newVersion = bump.Apply(currentVersion)
 
-		wrote, err := driver.VersionDriver.writeVersion(newVersion)
+		wrote, err := driver.VersionDriver.writeVersion(newVersion, params)
 		if wrote {
 			break
 		}
@@ -98,7 +98,7 @@ func (driver *GitDriver) Set(newVersion semver.Version) error {
 			return err
 		}
 
-		wrote, err := driver.VersionDriver.writeVersion(newVersion)
+		wrote, err := driver.VersionDriver.writeVersion(newVersion, nil)
 		if err != nil {
 			return err
 		}

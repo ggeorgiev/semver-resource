@@ -108,7 +108,7 @@ func createOpts(os models.OpenStackOptions) gophercloud.AuthOptions {
 	return opts
 }
 
-func (driver *SwiftDriver) Bump(bump version.Bump) (semver.Version, error) {
+func (driver *SwiftDriver) Bump(bump version.Bump, params map[string]interface{}) (semver.Version, error) {
 	currentVersion, err := driver.getCurrentVersion()
 	if err != nil {
 		return semver.Version{}, err

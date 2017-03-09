@@ -36,6 +36,8 @@ type OutParams struct {
 
 	Bump string `json:"bump"`
 	Pre  string `json:"pre"`
+
+	Repo string `json:"repo"`
 }
 
 type CheckRequest struct {

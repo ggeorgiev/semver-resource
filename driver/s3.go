@@ -20,7 +20,7 @@ type S3Driver struct {
 	Key        string
 }
 
-func (driver *S3Driver) Bump(bump version.Bump) (semver.Version, error) {
+func (driver *S3Driver) Bump(bump version.Bump, params map[string]interface{}) (semver.Version, error) {
 	var currentVersion semver.Version
 
 	resp, err := driver.Svc.GetObject(&s3.GetObjectInput{

@@ -111,7 +111,7 @@ var _ = Describe("Swift", func() {
 		driver, err := newTestSwiftDriver("1.0.0", "testitem2.txt")
 		defer deleteObject("testitem2.txt")
 		Expect(err).To(BeNil())
-		semVer, err := driver.Bump(version.PatchBump{})
+		semVer, err := driver.Bump(version.PatchBump{}, nil)
 		Expect(err).To(BeNil())
 		Expect(semVer.String()).To(Equal("1.0.1"))
 	})
@@ -124,7 +124,7 @@ var _ = Describe("Swift", func() {
 		err = driver.Set(semver.Version{Major: 2, Minor: 0, Patch: 10})
 		Expect(err).To(BeNil())
 
-		semVer, err := driver.Bump(version.PatchBump{})
+		semVer, err := driver.Bump(version.PatchBump{}, nil)
 		Expect(err).To(BeNil())
 		Expect(semVer.String()).To(Equal("2.0.11"))
 	})

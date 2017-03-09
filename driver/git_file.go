@@ -48,7 +48,7 @@ const falsePushString = "Everything up-to-date"
 const pushRejectedString = "[rejected]"
 const pushRemoteRejectedString = "[remote rejected]"
 
-func (driver *GitFileDriver) writeVersion(newVersion semver.Version) (bool, error) {
+func (driver *GitFileDriver) writeVersion(newVersion semver.Version, params map[string]interface{}) (bool, error) {
 	err := ioutil.WriteFile(filepath.Join(gitRepoDir, driver.File), []byte(newVersion.String()+"\n"), 0644)
 	if err != nil {
 		return false, err
